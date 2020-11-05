@@ -40,13 +40,17 @@ class subFile:
             self.subresv \
             = read_subheader(data[:32])
 
+        print('we read the subheader',self.subflgs);
+
         # header is 32 bytes
         y_dat_pos = 32
 
         if txyxy:
+            print('txyxy')
             # only reason to use subnpts if x data is here
             pts = self.subnpts
         else:
+            print('self.subnpts',fnpts)
             pts = fnpts
 
         # Choosing exponent

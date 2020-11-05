@@ -200,13 +200,27 @@ class File:
                         dat_siz = (8 * pts) + 32
                     else:
                         # use global points
+                        print('fnpts=',self.fnpts,i)
                         pts = self.fnpts
                         dat_siz = (4 * pts) + 32
 
                     sub_end = sub_pos + dat_siz
                     # read into object, add to list
+
                     self.sub.append(subFile(content[sub_pos:sub_end],
                                             self.fnpts, self.fexp, self.txyxys, self.tsprec, self.tmulti))
+                    print('read into object',sub_pos,sub_end,self.sub)
+
+
+                    print(type(self.fnpts))
+                    print(type(self.fexp))
+                    print(type(self.txyxys))
+                    print(type(self.tsprec))
+                    print(type(self.tmulti))
+
+
+                                        
+
                     # update positions
                     sub_pos = sub_end
 
@@ -622,6 +636,131 @@ class File:
         with open(path, 'w') as f:
             self.stream_data_txt(f, delimiter, newline)
 
+    def write_spc(self, path):
+        with open(path, 'wb') as f:
+            if self.fversn == b'\x4b':
+                print("NEW FORMAT (LSB)")
+                f.write(struct.pack(self.head_str.encode('utf8'), self.ftflg, \
+                                    self.fversn, \
+                                    bytes([self.fexper]), \
+                                    bytes([self.fexp]), \
+                                    self.fnpts, \
+                                    self.ffirst, \
+                                    self.flast, \
+                                    self.fnsub, \
+                                    bytes([self.fxtype]), \
+                                    bytes([self.fytype]), \
+                                    bytes([self.fztype]), \
+                                    self.fpost, \
+                                    self.fdate, \
+                                    self.fres, \
+                                    self.fsource, \
+                                    self.fpeakpt, \
+                                    self.fspare, \
+                                    self.fcmnt.replace('\\x00','').encode('utf8'), \
+                                    self.fcatxt, \
+                                    self.flogoff, \
+                                    self.fmods, \
+                                    self.fprocs, \
+                                    self.flevel, \
+                                    self.fsampin, \
+                                    self.ffactor, \
+                                    self.fmethod, \
+                                    self.fzinc, \
+                                    self.fwplanes, \
+                                    self.fwinc, \
+                                    self.fwtype, \
+                                    self.freserv \
+                ))
+
+                if not self.txyxys:
+                    # txyxys don't have global x data
+                    print("txyxys don't have global x data")
+                    if self.txvals:
+                        # if global x data is given
+                        print("if global x data is given")
+                        f.write(self.x)
+                    else:
+                        print('we are using generated self.x')
+
+                if self.dat_fmt == '-xy' and self.fnpts > 0:
+                    print('loop over entries in directory')
+
+                else:
+                    print("don't have directory, for each subfile")
+                    for subfile in self.sub:
+                        print('# figure out its size')
+                        if self.txyxys:
+                            print('# user points in subfile')
+                        else:
+                            print('# use global points')
+                            pts = self.fnpts
+                            dat_siz = (4 * pts) + 32
+
+                        subhead_str = "<cchfffiif4s"
+                        f.write(struct.pack(subhead_str, \
+                                            bytes([subfile.subflgs]), \
+                                            bytes([subfile.subexp]), \
+                                            subfile.subindx, \
+                                            subfile.subtime, \
+                                            subfile.subnext, \
+                                            subfile.subnois, \
+                                            subfile.subnpts, \
+                                            subfile.subscan, \
+                                            subfile.subwlevel, \
+                                            subfile.subresv))
+
+                        if self.txyxys:
+                            pts = subfile.subnpts
+                            print('output: pts', pts)
+                        else:
+                            pts = self.fnpts
+                            print('output: pts', pts)
+
+                        if not self.tmulti:
+                            exp = self.fexp
+                            print('output: exp', exp)
+                        else:
+                            exp = subfile.subexp
+                            print('output: exp', exp)
+
+                        if not (-128 < exp <= 128):
+                            exp = 0
+
+                        # if x_data present
+                        if self.txyxys:
+                            print('there is x data present, but no code yet')
+
+                        print('okay, save the y data')
+                        y_dat_str = '<'
+                        if exp == 128:
+                            # floating y-values
+                            print('exp == 128, but no code yet')
+                        else:
+                            print('integer format for y values')
+                            if self.tsprec:
+                                print('16 bit!, but no code')
+                            else:
+                                print('32 bit!')
+                                y_dat_str += 'i' * pts
+
+                                print(type(subfile.y))
+                                
+                                f.write(struct.pack(y_dat_str, *subfile.y))
+
+                if self.flogoff:
+                    print('we are writing a log')
+                    f.write(struct.pack(self.logstc_str.encode('utf8'), \
+                                        self.logsizd, \
+                                        self.logsizm, \
+                                        self.logtxto, \
+                                        self.logbins, \
+                                        self.logdsks, \
+                                        self.logspar \
+                                        ))
+
+                        
+                
     def print_metadata(self):
         """ Print out select metadata"""
         print("Scan: ", self.log_dict['Comment'], "\n",
