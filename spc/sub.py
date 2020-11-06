@@ -61,6 +61,8 @@ class subFile:
         else:
             exp = self.subexp
 
+        print('******* READ TMULTI',tmulti,fexp,self.subexp)
+
         # Make sure it is reasonable, if it out of range zero it
         if not (-128 < exp <= 128):
             exp = 0
@@ -69,6 +71,7 @@ class subFile:
         # if x_data present
         # --------------------------
         if txyxy:
+            print('****** THERE IS X DATA PRESENT')
             x_str = '<' + 'i' * pts
             x_dat_pos = y_dat_pos
             x_dat_end = x_dat_pos + (4 * pts)
@@ -83,6 +86,7 @@ class subFile:
         # --------------------------
         y_dat_str = '<'
         if exp == 128:
+            print('****** WE ARE READING INTO FLOATING Y')
             # Floating y-values
             y_dat_str += 'f' * pts
             y_dat_end = y_dat_pos + (4 * pts)
@@ -93,11 +97,13 @@ class subFile:
             # lydata = len(data) - y_dat_pos
             if tsprec:
                 # 16 bit
+                print('****** READING INTO 16-bit')
                 y_dat_str += 'h' * pts  # short
                 y_dat_end = y_dat_pos + (2 * pts)
                 y_raw = np.array(struct.unpack(y_dat_str.encode('utf8'), data[y_dat_pos:y_dat_end]))
                 self.y = (2**(exp - 16)) * y_raw
             else:
+                print('****** READING INTO 32-bit')
                 # 32 bit, using size of subheader to figure out data type
                 # actually there is flag for this, use it instead
                 # self.tsprec
@@ -105,6 +111,9 @@ class subFile:
                 y_dat_end = y_dat_pos + (4 * pts)
                 y_raw = np.array(struct.unpack(y_dat_str.encode('utf8'), data[y_dat_pos:y_dat_end]))
                 self.y = (2**(exp - 32)) * y_raw
+
+                print('****** READ y values',self.y[0], type(self.y), type(self.y[0]))
+                print('****** READ y values--raw',exp,y_raw[0],self.y[0])
 
 
 class subFileOld:

@@ -719,17 +719,17 @@ class File:
 
                         if self.txyxys:
                             pts = subfile.subnpts
-                            print('output: pts', pts)
+                            print('txyxys = true, output: pts', pts)
                         else:
                             pts = self.fnpts
-                            print('output: pts', pts)
+                            print('txyxys = false, output: pts', pts)
 
                         if not self.tmulti:
                             exp = self.fexp
-                            print('output: exp', exp)
+                            print('self.tmulti = false, output: exp', exp, "not", subfile.subexp)
                         else:
                             exp = subfile.subexp
-                            print('output: exp', exp)
+                            print('self.tmulti = true, output: exp', exp, "not", self.fexp)
 
                         if not (-128 < exp <= 128):
                             exp = 0
@@ -751,9 +751,15 @@ class File:
                                 print('32 bit!')
                                 y_dat_str += 'i' * pts
 
-                                print(type(subfile.y))
-                                
-                                f.write(struct.pack(y_dat_str, *subfile.y))
+                                print('type of subfile.y',type(subfile.y))
+                                print(type(subfile.y[0]), subfile.y[0])
+
+                                y_raw = subfile.y / (2**(exp-32))
+
+                                y_int = y_raw.astype(np.int32)
+                                print('convert to int',subfile.y[0],y_raw[0],y_int[0])
+
+                                f.write(struct.pack(y_dat_str, *y_int))
 
                 if self.flogoff:
                     print('we are writing a log')
