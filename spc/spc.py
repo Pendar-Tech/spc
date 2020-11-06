@@ -736,17 +736,37 @@ class File:
 
                         # if x_data present
                         if self.txyxys:
-                            print('there is x data present, but no code yet')
+                            print('there is x data present!',pts)
+                            x_str = '<' + ('i' * pts)
+                            x_raw = subfile.x / (2**(exp-32))
+                            x_raw_int = x_raw.astype(np.int32)
+                            print(x_str)
+                            f.write(struct.pack(x_str.encode('utf8'),*x_raw_int))
 
                         print('okay, save the y data')
                         y_dat_str = '<'
                         if exp == 128:
                             # floating y-values
-                            print('exp == 128, but no code yet')
+                            print('exp == 128')
+                            y_dat_str += 'f' * pts
+                            f.write(struct.pack(y_dat_str.encode('utf8'), *subfile.y))
                         else:
                             print('integer format for y values')
                             if self.tsprec:
-                                print('16 bit!, but no code')
+                                print('16 bit!')
+                                y_dat_str += 'h' * pts #short
+                                y_raw = subfile.y / (2**(exp-16))
+
+                                print('type of subfile.y',type(subfile.y))
+                                print(type(subfile.y[0]), subfile.y[0])
+
+                                y_int = y_raw.astype(np.int16
+                                )
+                                print('convert to int',subfile.y[0],y_raw[0],y_int[0])
+
+                                f.write(struct.pack(y_dat_str, *y_int))
+                                
+                                
                             else:
                                 print('32 bit!')
                                 y_dat_str += 'i' * pts

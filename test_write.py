@@ -27,7 +27,7 @@ for filename in os.listdir(dpath):
             tpass += 1
         else:
             print("Fail\n------")
-            mfile.append(i)
+            mfile.append(filename)
 print("Passed %i of %i tests. " % (tpass, tfile))
 print("Did not match ref file: ", mfile)
 print("Did not have ref file: ", rfile)
