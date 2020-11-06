@@ -53,9 +53,11 @@ class File:
         # load entire into memory temporarly
         with open(filename, "rb") as fin:
             content = fin.read()
+            print('######## Read raw data')
             # print "Read raw data"
 
         self.length = len(content)
+        print('######## len(content)',len(content))
         # extract first two bytes to determine file type version
         self.ftflg, self.fversn = struct.unpack('<cc'.encode('utf8'), content[:2])
         # --------------------------------------------
@@ -68,6 +70,7 @@ class File:
             # -------------
             # use little-endian format with standard sizes
             # use naming scheme in SPC.H header file
+            print('************** new LSB 1st format')
             self.ftflg, \
                 self.fversn, \
                 self.fexper, \
@@ -142,8 +145,11 @@ class File:
             except:
                 self.cmnt = self.fcmnt
 
+            print('*************** fnsub',self.fnsub)
+
             # figure out type of file
             if self.fnsub > 1:
+                print('************** fnsub > 1')
                 self.dat_multi = True
 
             if self.txyxys:
@@ -273,6 +279,7 @@ class File:
         # OLD FORMAT
         # --------------------------------------------
         elif self.fversn == b'\x4d':
+            print('########### OLD FORMAT')
             # old format
             # oxtype -> fxtype
             # oytype -> fytype
@@ -758,9 +765,110 @@ class File:
                                         self.logdsks, \
                                         self.logspar \
                                         ))
+            elif self.fversn == b'\x4c':
+                print('########## New MSB 1st, not implemented!')
+            elif self.fversn == b'\x4d':
+                print('########## WRITING OLD FORMAT')
 
-                        
-                
+                # note that the original old_head_str INCLUDES the first subheader, which we don't want-- we don't want to write it twice!
+                old_head_str_no_subh1 = "<cchfffcchcccc8shh28s130s30s"
+                f.write(struct.pack(old_head_str_no_subh1.encode('utf8'), self.oftflgs, \
+                                    self.oversn, \
+                                    self.oexp, \
+                                    self.onpts, \
+                                    self.ofirst, \
+                                    self.olast, \
+                                    bytes([self.fxtype]), \
+                                    bytes([self.fytype]), \
+                                    self.oyear, \
+                                    bytes([self.omonth]), \
+                                    bytes([self.oday]), \
+                                    bytes([self.ohour]), \
+                                    bytes([self.ominute]), \
+                                    self.ores, \
+                                    self.opeakpt, \
+                                    self.onscans, \
+                                    self.ospare, \
+                                    self.ocmnt, \
+                                    self.ocatxt, \
+                ))
+
+                print('We wrote the old format header',self.ocmnt,self.ocatxt,self.osubh1)
+
+                # Flag bits (assuming same)
+                self.tsprec, \
+                    self.tcgram, \
+                    self.tmulti, \
+                    self.trandm, \
+                    self.tordrd, \
+                    self.talabs, \
+                    self.txyxys, \
+                    self.txvals = flag_bits(self.oftflgs)[::-1]
+
+                subfilenum = 0
+                subhead_str = "<cchfffiif4s"
+                for subfile in self.sub:
+                    print('outputting subfile',subfilenum,'of',len(self.sub))
+                    f.write(struct.pack(subhead_str, \
+                                            bytes([subfile.subflgs]), \
+                                            bytes([subfile.subexp]), \
+                                            subfile.subindx, \
+                                            subfile.subtime, \
+                                            subfile.subnext, \
+                                            subfile.subnois, \
+                                            subfile.subnpts, \
+                                            subfile.subscan, \
+                                            subfile.subwlevel, \
+                                            subfile.subresv))
+
+                    yfloat = False
+                    if subfile.subexp == 128:
+                        yfloat = True
+
+                    if self.txyxys:
+                        pts = subfile.subnpts
+                    else:
+                        pts = self.onpts
+
+                    if subfile.subexp > 0 and subfile.subexp < 128:
+                        exp = subfile.subexp
+                    else:
+                        exp = fexp
+
+                    if self.txyxys:
+                        print('***** self.txyxys, not implemented')
+
+                    if yfloat:
+                        print('***** yfloat!')
+                    else:
+                        # the old format is annoying
+                        y_dat_str = '>' + 'B' * 4 * pts
+
+                        print(type(subfile.y[0]), subfile.y[0])
+
+                        y_int = np.int32( subfile.y * 2**(32-exp))
+
+                        y_raw = np.ndarray.tobytes(y_int)
+                        y_raw2 = []
+                        for i in range(0, len(y_raw), 4):
+                            y_raw2.append(y_raw[i+2])
+                            y_raw2.append(y_raw[i+3])
+                            y_raw2.append(y_raw[i+0])
+                            y_raw2.append(y_raw[i+1])
+
+                        #                            y_bytes = np.ndarray.tobytes(np.ndarray([y]))
+#                            y_raw.append(y_bytes[1])
+#                            y_raw.append(y_bytes[0])
+#                            y_raw.append(y_bytes[3])
+#                            y_raw.append(y_bytes[2])
+
+                        print("****** y_raw to write",y_raw2[0],y_raw2[1],y_raw2[2],y_raw2[3])
+
+
+                        f.write(struct.pack(y_dat_str, *y_raw2))
+
+                    subfilenum += 1
+
     def print_metadata(self):
         """ Print out select metadata"""
         print("Scan: ", self.log_dict['Comment'], "\n",

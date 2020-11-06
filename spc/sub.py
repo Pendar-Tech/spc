@@ -171,11 +171,13 @@ class subFileOld:
         # assuming can't have 2 byte y-values, !! fix maybe
         y_dat_end = y_dat_pos + (4 * pts)
         if yfloat:
+            print('********** reading yfloat')
             # floats are pretty straigtfoward
             y_dat_str = '<' + 'f' * pts
             y_raw = struct.unpack(y_dat_str.encode('utf8'), data[y_dat_pos:y_dat_end])
             self.y = y_raw
         else:
+            print('********** reading weirdo int')
             # for old format, extract the entire array out as 1 bit unsigned
             # integers, swap 1st and 2nd byte, as well as 3rd and 4th byte to get
             # the final integer then scale by the exponent
@@ -191,6 +193,8 @@ class subFileOld:
             y_int = np.int32(y_int) / (2**(32 - exp))
 
             self.y = y_int
+
+            print('y[0]', self.y[0], y_raw[0], y_raw[1], y_raw[2], y_raw[3])
 
         # do stuff if subflgs
         # if 1 subfile changed
